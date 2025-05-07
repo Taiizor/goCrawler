@@ -78,8 +78,8 @@ The JSON output contains:
 - `timestamp`: When the crawl completed
 
 Each page result includes:
-- `url`: The page URL
 - `title`: Page title
+- `url`: The page URL
 - `status_code`: HTTP status code
 - `depth`: Crawl depth of this page
 - `timestamp`: When this page was crawled
@@ -90,8 +90,8 @@ Each page result includes:
 
 The CSV output contains one row per page with columns:
 - URL
-- Depth
 - Title
+- Depth
 - Timestamp
 - StatusCode
 - ContentLength
