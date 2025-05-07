@@ -82,9 +82,9 @@ Each page result includes:
 - `url`: The page URL
 - `status_code`: HTTP status code
 - `depth`: Crawl depth of this page
+- `links`: Array of links found on the page
 - `timestamp`: When this page was crawled
 - `content_length`: Content length in bytes
-- `links`: Array of links found on the page
 
 ### CSV Output
 
