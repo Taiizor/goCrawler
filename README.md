@@ -4,14 +4,14 @@ A high-performance web crawler with concurrent processing capabilities written i
 
 ## Features
 
+- URL filtering and normalization
+- Link extraction from HTML pages
+- Rate limiting and timeout support
+- Logging and graceful error handling
+- Results export to JSON or CSV formats
+- Configurable crawl depth and concurrency
 - Parallel crawling using a worker pool architecture
 - Domain-specific crawling (stays within the same domain)
-- Configurable crawl depth and concurrency
-- URL filtering and normalization
-- Rate limiting and timeout support 
-- Link extraction from HTML pages
-- Results export to JSON or CSV formats
-- Logging and graceful error handling
 
 ## Installation
 
