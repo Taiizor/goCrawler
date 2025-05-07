@@ -29,7 +29,7 @@ A high-performance web crawler with concurrent processing capabilities written i
 
 2. Build the application:
    ```bash
-   go build -o webcrawler
+   go build -o goCrawler
    ```
 
 ## Usage
@@ -37,7 +37,7 @@ A high-performance web crawler with concurrent processing capabilities written i
 Run the crawler with the following command:
 
 ```bash
-./webcrawler -url "https://www.vegalya.com" -depth 3 -workers 10 -output results.json
+./goCrawler -url "https://www.vegalya.com" -depth 3 -workers 10 -output results.json
 ```
 
 ### Command Line Flags
@@ -55,17 +55,17 @@ Run the crawler with the following command:
 
 Crawl a website with 10 workers to a depth of 3, saving output as JSON:
 ```bash
-./webcrawler -url "https://www.vegalya.com" -depth 3 -workers 10 -output results.json
+./goCrawler -url "https://www.vegalya.com" -depth 3 -workers 10 -output results.json
 ```
 
 Crawl a website and save results as CSV:
 ```bash
-./webcrawler -url "https://www.vegalya.com" -output results.csv
+./goCrawler -url "https://www.vegalya.com" -output results.csv
 ```
 
 Crawl with custom timeout and rate limiting:
 ```bash
-./webcrawler -url "https://www.vegalya.com" -timeout 5s -rate 200ms
+./goCrawler -url "https://www.vegalya.com" -timeout 5s -rate 200ms
 ```
 
 ## Output Format
