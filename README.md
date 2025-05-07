@@ -73,8 +73,8 @@ Crawl with custom timeout and rate limiting:
 ### JSON Output
 
 The JSON output contains:
-- `count`: Number of pages crawled
 - `results`: Array of crawled pages
+- `count`: Number of pages crawled
 - `timestamp`: When the crawl completed
 
 Each page result includes:
