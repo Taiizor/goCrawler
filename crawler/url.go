@@ -68,7 +68,7 @@ func IsURLValid(rawURL string) bool {
 	// Reject certain file types that are not webpages
 	excludedExtensions := []string{
 		".pdf", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".css", ".js",
-		".zip", ".tar", ".gz", ".rar", ".exe", ".mp3", ".mp4", ".avi", 
+		".zip", ".tar", ".gz", ".rar", ".exe", ".mp3", ".mp4", ".avi",
 		".mov", ".mkv", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
 	}
 
@@ -100,4 +100,4 @@ func ResolveURL(baseURL, relativeURL string) (string, error) {
 
 	resolvedURL := base.ResolveReference(rel)
 	return resolvedURL.String(), nil
-} 
+}

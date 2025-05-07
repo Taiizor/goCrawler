@@ -63,7 +63,7 @@ func (s *CSVStorage) Save(results interface{}) error {
 			if field.PkgPath != "" {
 				continue
 			}
-			
+
 			// Use JSON tag if available, otherwise use field name
 			tag := field.Tag.Get("json")
 			if tag == "" {
@@ -92,7 +92,7 @@ func (s *CSVStorage) Save(results interface{}) error {
 		if itemValue.Kind() == reflect.Struct {
 			for j := 0; j < itemValue.NumField(); j++ {
 				field := itemValue.Field(j)
-				
+
 				// Skip unexported fields
 				if itemValue.Type().Field(j).PkgPath != "" {
 					continue
@@ -128,7 +128,7 @@ func (s *CSVStorage) Save(results interface{}) error {
 				default:
 					fieldStr = fmt.Sprintf("%v", field.Interface())
 				}
-				
+
 				row = append(row, fieldStr)
 			}
 
@@ -143,4 +143,4 @@ func (s *CSVStorage) Save(results interface{}) error {
 	}
 
 	return nil
-} 
+}

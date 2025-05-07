@@ -66,13 +66,13 @@ func main() {
 	}()
 
 	// Start crawling
-	fmt.Printf("Starting crawler at %s with %d workers and max depth %d\n", 
+	fmt.Printf("Starting crawler at %s with %d workers and max depth %d\n",
 		*startURL, *numWorkers, *maxDepth)
-	
+
 	start := time.Now()
 	results, err := c.Start()
 	elapsed := time.Since(start)
-	
+
 	if err != nil {
 		fmt.Printf("Crawler error: %v\n", err)
 		os.Exit(1)
@@ -81,4 +81,4 @@ func main() {
 	fmt.Printf("Crawling completed in %s\n", elapsed)
 	fmt.Printf("Found %d unique URLs\n", len(results))
 	fmt.Printf("Results saved to %s\n", *outputFile)
-} 
+}

@@ -18,4 +18,4 @@ func IsJSONFile(path string) bool {
 // IsCSVFile checks if a file path has a .csv extension
 func IsCSVFile(path string) bool {
 	return strings.ToLower(filepath.Ext(path)) == ".csv"
-} 
+}

@@ -61,4 +61,4 @@ func getResultCount(results interface{}) int {
 
 	// If we can't determine the count, return 0
 	return 0
-} 
+}

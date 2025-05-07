@@ -120,4 +120,4 @@ func FetchURLContent(url string, timeout time.Duration) (string, error) {
 	}
 
 	return string(bodyBytes), nil
-} 
+}
