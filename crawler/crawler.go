@@ -29,7 +29,9 @@ type Config struct {
 	Timeout    time.Duration
 	RateLimit  time.Duration
 	Logger     *log.Logger
-	Storage    interface{ Save(results []Result) error }
+	Storage    interface {
+		Save(results interface{}) error
+	}
 }
 
 // Crawler represents the web crawler
@@ -83,7 +85,7 @@ func New(config Config) *Crawler {
 		stopChan:    make(chan struct{}),
 		ctx:         ctx,
 		cancel:      cancel,
-		rateLimiter: time.Tick(config.RateLimit),
+		rateLimiter: time.NewTicker(config.RateLimit).C,
 	}
 }
 
@@ -155,7 +157,7 @@ func (c *Crawler) worker(id int, baseDomain string) {
 		case <-c.ctx.Done():
 			c.config.Logger.Printf("Worker %d shutting down", id)
 			return
-		case job, ok := <-c.jobs:
+		case currentJob, ok := <-c.jobs:
 			if !ok {
 				return
 			}
@@ -164,10 +166,10 @@ func (c *Crawler) worker(id int, baseDomain string) {
 			<-c.rateLimiter
 
 			// Process the URL
-			c.config.Logger.Printf("Worker %d crawling %s (depth: %d)", id, job.url, job.depth)
-			result, err := c.crawlURL(job.url, job.depth)
+			c.config.Logger.Printf("Worker %d crawling %s (depth: %d)", id, currentJob.url, currentJob.depth)
+			result, err := c.crawlURL(currentJob.url, currentJob.depth)
 			if err != nil {
-				c.config.Logger.Printf("Error crawling %s: %v", job.url, err)
+				c.config.Logger.Printf("Error crawling %s: %v", currentJob.url, err)
 				continue
 			}
 
@@ -177,7 +179,7 @@ func (c *Crawler) worker(id int, baseDomain string) {
 			c.mu.Unlock()
 
 			// If we haven't reached max depth, add all links to the queue
-			if job.depth < c.config.MaxDepth {
+			if currentJob.depth < c.config.MaxDepth {
 				for _, link := range result.Links {
 					// Only process URLs we haven't seen yet
 					if !c.hasURLBeenSeen(link) {
@@ -186,7 +188,7 @@ func (c *Crawler) worker(id int, baseDomain string) {
 						if err == nil && linkURL.Host == baseDomain {
 							c.markURLSeen(link)
 							select {
-							case c.jobs <- job{url: link, depth: job.depth + 1}:
+							case c.jobs <- job{url: link, depth: currentJob.depth + 1}:
 							case <-c.ctx.Done():
 								return
 							}
@@ -210,4 +212,4 @@ func (c *Crawler) markURLSeen(url string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.seen[url] = true
-} 
+}
