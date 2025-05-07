@@ -36,17 +36,19 @@ type Config struct {
 
 // Crawler represents the web crawler
 type Crawler struct {
-	config      Config
-	client      *http.Client
-	wg          sync.WaitGroup
-	seen        map[string]bool
-	results     []Result
-	jobs        chan job
-	stopChan    chan struct{}
-	ctx         context.Context
-	cancel      context.CancelFunc
-	rateLimiter <-chan time.Time
-	mu          sync.Mutex
+	config           Config
+	client           *http.Client
+	wg               sync.WaitGroup
+	seen             map[string]bool
+	results          []Result
+	jobs             chan job
+	stopChan         chan struct{}
+	ctx              context.Context
+	cancel           context.CancelFunc
+	rateLimiter      <-chan time.Time
+	mu               sync.Mutex
+	pendingJobs      int        // Job counter
+	pendingJobsMutex sync.Mutex // Mutex for job counter
 }
 
 // job represents a URL to be crawled
@@ -77,15 +79,40 @@ func New(config Config) *Crawler {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &Crawler{
-		config:      config,
-		client:      &http.Client{Timeout: config.Timeout},
-		seen:        make(map[string]bool),
-		results:     make([]Result, 0),
-		jobs:        make(chan job),
-		stopChan:    make(chan struct{}),
-		ctx:         ctx,
-		cancel:      cancel,
-		rateLimiter: time.NewTicker(config.RateLimit).C,
+		config:           config,
+		client:           &http.Client{Timeout: config.Timeout},
+		seen:             make(map[string]bool),
+		results:          make([]Result, 0),
+		jobs:             make(chan job, 1000),
+		stopChan:         make(chan struct{}),
+		ctx:              ctx,
+		cancel:           cancel,
+		rateLimiter:      time.NewTicker(config.RateLimit).C,
+		pendingJobs:      0, // Initially 0 jobs
+		pendingJobsMutex: sync.Mutex{},
+	}
+}
+
+// incrementPendingJobs safely increments the job counter
+func (c *Crawler) incrementPendingJobs() {
+	c.pendingJobsMutex.Lock()
+	defer c.pendingJobsMutex.Unlock()
+	c.pendingJobs++
+	c.config.Logger.Printf("DEBUG: pendingJobs incremented to %d", c.pendingJobs)
+}
+
+// decrementPendingJobs safely decrements the job counter and closes the jobs channel if all jobs are done
+func (c *Crawler) decrementPendingJobs() {
+	c.pendingJobsMutex.Lock()
+	defer c.pendingJobsMutex.Unlock()
+	c.pendingJobs--
+	c.config.Logger.Printf("DEBUG: pendingJobs decremented to %d", c.pendingJobs)
+	if c.pendingJobs <= 0 {
+		c.config.Logger.Println("All jobs completed, closing job channel")
+		// We can only close the channel once, so adding a check
+		if c.pendingJobs == 0 {
+			close(c.jobs)
+		}
 	}
 }
 
@@ -110,13 +137,16 @@ func (c *Crawler) Start() ([]Result, error) {
 		go c.worker(i+1, baseDomain)
 	}
 
-	// Enqueue the starting URL
+	// Enqueue the starting URL and increment job counter
+	c.config.Logger.Println("Adding starting URL to jobs queue")
+	c.incrementPendingJobs()
 	c.jobs <- job{url: startURL, depth: 0}
 	c.markURLSeen(startURL)
 
 	// Wait for completion or cancellation
 	go func() {
 		c.wg.Wait()
+		c.config.Logger.Println("All workers have completed, signaling completion")
 		close(c.stopChan)
 	}()
 
@@ -151,14 +181,17 @@ func (c *Crawler) Stop() {
 // worker processes jobs from the queue
 func (c *Crawler) worker(id int, baseDomain string) {
 	defer c.wg.Done()
+	c.config.Logger.Printf("Worker %d started", id)
 
 	for {
 		select {
 		case <-c.ctx.Done():
-			c.config.Logger.Printf("Worker %d shutting down", id)
+			c.config.Logger.Printf("Worker %d shutting down due to cancellation", id)
 			return
 		case currentJob, ok := <-c.jobs:
 			if !ok {
+				// This happens when the jobs channel is closed
+				c.config.Logger.Printf("Worker %d exiting, job channel closed", id)
 				return
 			}
 
@@ -170,6 +203,7 @@ func (c *Crawler) worker(id int, baseDomain string) {
 			result, err := c.crawlURL(currentJob.url, currentJob.depth)
 			if err != nil {
 				c.config.Logger.Printf("Error crawling %s: %v", currentJob.url, err)
+				c.decrementPendingJobs() // Job is considered completed even if there's an error
 				continue
 			}
 
@@ -180,6 +214,7 @@ func (c *Crawler) worker(id int, baseDomain string) {
 
 			// If we haven't reached max depth, add all links to the queue
 			if currentJob.depth < c.config.MaxDepth {
+				newJobsAdded := 0
 				for _, link := range result.Links {
 					// Only process URLs we haven't seen yet
 					if !c.hasURLBeenSeen(link) {
@@ -187,15 +222,27 @@ func (c *Crawler) worker(id int, baseDomain string) {
 						linkURL, err := url.Parse(link)
 						if err == nil && linkURL.Host == baseDomain {
 							c.markURLSeen(link)
+							// Increment counter before adding new job
+							c.incrementPendingJobs()
+							newJobsAdded++
 							select {
 							case c.jobs <- job{url: link, depth: currentJob.depth + 1}:
+								// Job successfully added
 							case <-c.ctx.Done():
+								c.decrementPendingJobs() // Decrement counter if job is cancelled
+								c.config.Logger.Printf("Worker %d context cancelled while adding job", id)
 								return
 							}
 						}
 					}
 				}
+				c.config.Logger.Printf("Worker %d added %d new jobs from %s", id, newJobsAdded, currentJob.url)
+			} else {
+				c.config.Logger.Printf("Worker %d reached max depth (%d) for %s", id, c.config.MaxDepth, currentJob.url)
 			}
+
+			// Job completed, decrement counter
+			c.decrementPendingJobs()
 		}
 	}
 }
