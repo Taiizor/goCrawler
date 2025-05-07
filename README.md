@@ -17,7 +17,7 @@ A high-performance web crawler with concurrent processing capabilities written i
 
 ### Prerequisites
 
-- Go 1.16 or higher
+- Go 1.20 or higher
 
 ### Steps
 
